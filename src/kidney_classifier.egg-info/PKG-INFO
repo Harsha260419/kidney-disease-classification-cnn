@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: kidney_classifier
+Version: 0.0.0
+Summary: A small python package for CNN app
+Home-page: https://github.com/Harsha260419/kidney-disease-classification-cnn
+Author: Harsha260419
+Author-email: harsha.sai2813@gmail.com
+Project-URL: Bug Tracker, https://github.com/Harsha260419/kidney-disease-classification-cnn/issues
+License-File: LICENSE
+Dynamic: author
+Dynamic: author-email
+Dynamic: description
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: project-url
+Dynamic: summary
+
+# kidney-disease-classification-cnn
