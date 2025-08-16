@@ -1,77 +1,77 @@
-import os
-from pathlib import Path
-import urllib.request as request
-from zipfile import ZipFile
 import tensorflow as tf
-import time
+from pathlib import Path
 from kidney_classifier.entity.config_entity import TrainingConfig
-
 
 class Training:
     def __init__(self, config: TrainingConfig):
         self.config = config
-    
+        self.model = None
+        self.train_ds = None
+        self.valid_ds = None
+
     def get_base_model(self):
-        self.model = tf.keras.models.load_model(self.config.updated_base_model_path)
-    
-    def train_valid_split(self):
-        datagenerator_kwargs = dict(
-            rescale=1./255,
-            validation_split=0.2
+        self.model = tf.keras.models.load_model(
+            self.config.updated_base_model_path
         )
-        dataflow_kwargs = dict(
-            target_size=self.config.params_image_size[:-1],
+
+    def get_datasets(self):
+        """
+        Loads and splits the dataset into training and validation sets.
+        """
+        
+        full_dataset = tf.keras.utils.image_dataset_from_directory(
+            directory=self.config.data_dir, 
+            labels='inferred',
+            label_mode='categorical',
+            image_size=self.config.params_image_size[:-1],
             batch_size=self.config.params_batch_size,
-            interpolation="bilinear"
-        )
-
-        valid_datagenerator = tf.keras.preprocessing.image.ImageDataGenerator(**datagenerator_kwargs)
-        
-        self.valid_generator = valid_datagenerator.flow_from_directory(
-            directory=self.config.training_data,
-            subset="validation",
-            shuffle=False,
-            class_mode="categorical",
-            color_mode="rgb",
-            **dataflow_kwargs
-        )
-
-        if self.config.params_is_augmentation:
-            train_datagenerator = tf.keras.preprocessing.image.ImageDataGenerator(
-                rotation_range=40,
-                horizontal_flip=True,
-                width_shift_range=0.2,
-                height_shift_range=0.2,
-                shear_range=0.2,
-                zoom_range=0.2,
-                **datagenerator_kwargs
-            )
-        else:
-            train_datagenerator = valid_datagenerator
-        
-        self.train_generator = train_datagenerator.flow_from_directory(
-            directory=self.config.training_data,
-            subset="training",
             shuffle=True,
-            class_mode="categorical",
-            color_mode="rgb",
-            **dataflow_kwargs
+            seed=123 
         )
+
+        
+        dataset_size = tf.data.experimental.cardinality(full_dataset).numpy()
+        val_size = int(dataset_size * self.config.params_val_split_size)
+        test_size = int(dataset_size * self.config.params_test_split_size)
+        train_size = dataset_size - val_size - test_size
+
+        
+        self.train_ds = full_dataset.take(train_size)
+        self.valid_ds = full_dataset.skip(train_size).take(val_size)
+        
+
+        rescale = tf.keras.layers.Rescaling(1./255)
+        self.train_ds = self.train_ds.map(lambda x, y: (rescale(x), y), num_parallel_calls=tf.data.AUTOTUNE)
+        self.valid_ds = self.valid_ds.map(lambda x, y: (rescale(x), y), num_parallel_calls=tf.data.AUTOTUNE)
+
+        
+        if self.config.params_is_augmentation:
+            data_augmentation = tf.keras.Sequential([
+                tf.keras.layers.RandomFlip("horizontal_and_vertical"),
+                tf.keras.layers.RandomRotation(0.2),
+            ])
+            self.train_ds = self.train_ds.map(lambda x, y: (data_augmentation(x, training=True), y), num_parallel_calls=tf.data.AUTOTUNE)
+
+        
+        self.train_ds = self.train_ds.prefetch(buffer_size=tf.data.AUTOTUNE)
+        self.valid_ds = self.valid_ds.prefetch(buffer_size=tf.data.AUTOTUNE)
+
 
     @staticmethod
     def save_model(path: Path, model: tf.keras.Model):
         model.save(path)
-    
+
     def train(self):
-        self.steps_per_epoch = self.train_generator.samples // self.train_generator.batch_size
-        self.validation_steps = self.valid_generator.samples // self.valid_generator.batch_size
+        self.get_base_model()
+        self.get_datasets()
 
         self.model.fit(
-            self.train_generator,
+            self.train_ds, 
             epochs=self.config.params_epochs,
-            steps_per_epoch=self.steps_per_epoch,
-            validation_steps=self.validation_steps,
-            validation_data=self.valid_generator
+            validation_data=self.valid_ds 
         )
 
-        self.save_model(path=self.config.trained_model_path, model=self.model)
+        self.save_model(
+            path=self.config.trained_model_path,
+            model=self.model
+        )

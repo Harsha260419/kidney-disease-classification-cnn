@@ -1,8 +1,11 @@
+VAL_SPLIT_SIZE: 0.1
+TEST_SPLIT_SIZE: 0.1
+
 AUGMENTATION: True
 IMAGE_SIZE: [224, 224, 3]
-BATCH_SIZE: 32
+BATCH_SIZE: 16
 INCLUDE_TOP: False
-EPOCHS: 1 # for testing purposes, will change when training for real
+EPOCHS: 20 # for testing purposes, will change when training for real
 CLASSES: 4
 WEIGHTS: imagenet
 LEARNING_RATE: 0.01
