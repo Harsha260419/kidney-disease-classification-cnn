@@ -1,3 +1,4 @@
+import time
 import tensorflow as tf
 from pathlib import Path
 from kidney_classifier.entity.config_entity import TrainingConfig
@@ -8,6 +9,7 @@ class Training:
         self.model = None
         self.train_ds = None
         self.valid_ds = None
+        self.callbacks = None
 
     def get_base_model(self):
         self.model = tf.keras.models.load_model(
@@ -55,6 +57,28 @@ class Training:
         
         self.train_ds = self.train_ds.prefetch(buffer_size=tf.data.AUTOTUNE)
         self.valid_ds = self.valid_ds.prefetch(buffer_size=tf.data.AUTOTUNE)
+        
+    def get_callbacks(self):
+        """
+        Updates the callbacks list.
+        """
+        timestamp = time.strftime("%Y-%m-%d-%H-%M-%S")
+        tb_log_dir = str(self.config.tensorboard_root_log_dir / f"tb_logs_at_{timestamp}")
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tb_log_dir)
+
+        checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+            filepath=str(self.config.checkpoint_model_filepath),
+            save_best_only=True,
+            monitor="val_loss"
+        )
+        
+        early_stopping_callback = tf.keras.callbacks.EarlyStopping(
+            monitor=self.config.params_early_stopping_monitor,
+            patience=self.config.params_early_stopping_patience,
+            restore_best_weights=True
+        )
+        
+        self.callbacks = [tensorboard_callback, checkpoint_callback, early_stopping_callback]
 
 
     @staticmethod
@@ -64,11 +88,13 @@ class Training:
     def train(self):
         self.get_base_model()
         self.get_datasets()
+        self.get_callbacks()
 
         self.model.fit(
             self.train_ds, 
             epochs=self.config.params_epochs,
-            validation_data=self.valid_ds 
+            validation_data=self.valid_ds,
+            callbacks=self.callbacks
         )
 
         self.save_model(

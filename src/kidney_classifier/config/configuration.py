@@ -14,6 +14,7 @@ class ConfigurationManager:
         self.params = read_yaml(params_filepath)
         create_directories([self.config.artifacts_root])
         
+
     def get_data_ingestion_config(self) -> DataIngestionConfig:
         config = self.config.data_ingestion
         create_directories([config.root_dir])
@@ -42,13 +43,13 @@ class ConfigurationManager:
             params_classes=self.params.CLASSES
         )
         return prepare_base_model_config
-    
+
     def get_training_config(self) -> TrainingConfig:
         training = self.config.training
         prepare_base_model = self.config.prepare_base_model
         params = self.params
         data_dir = self.config.data_ingestion.raw_data_dir
-        create_directories([Path(training.root_dir)])
+        create_directories([Path(training.root_dir), Path(training.tensorboard_root_log_dir)])
 
         training_config = TrainingConfig(
             root_dir=Path(training.root_dir),
@@ -60,10 +61,16 @@ class ConfigurationManager:
             params_is_augmentation=params.AUGMENTATION,
             params_image_size=params.IMAGE_SIZE,
             params_val_split_size=params.VAL_SPLIT_SIZE,
-            params_test_split_size=params.TEST_SPLIT_SIZE
+            params_test_split_size=params.TEST_SPLIT_SIZE,
+            # callback configs
+            tensorboard_root_log_dir=Path(training.tensorboard_root_log_dir),
+            checkpoint_model_filepath=Path(training.checkpoint_model_filepath),
+            params_early_stopping_monitor=params.EARLY_STOPPING_MONITOR,
+            params_early_stopping_patience=params.EARLY_STOPPING_PATIENCE
         )
 
         return training_config
+    
     
     def get_evaluation_config(self) -> EvaluationConfig:
         eval_config = self.config.evaluation

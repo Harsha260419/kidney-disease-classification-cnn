@@ -32,6 +32,11 @@ class TrainingConfig:
     params_image_size: list
     params_val_split_size: float
     params_test_split_size: float
+    # configs for callbacks
+    tensorboard_root_log_dir: Path
+    checkpoint_model_filepath: Path
+    params_early_stopping_monitor: str
+    params_early_stopping_patience: int
     
 @dataclass(frozen=True)
 class EvaluationConfig:

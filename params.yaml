@@ -5,7 +5,11 @@ AUGMENTATION: True
 IMAGE_SIZE: [224, 224, 3]
 BATCH_SIZE: 16
 INCLUDE_TOP: False
-EPOCHS: 20 # for testing purposes, will change when training for real
+EPOCHS: 1
 CLASSES: 4
 WEIGHTS: imagenet
 LEARNING_RATE: 0.01
+
+
+EARLY_STOPPING_MONITOR: "val_loss"
+EARLY_STOPPING_PATIENCE: 5
