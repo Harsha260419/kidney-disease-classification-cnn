@@ -19,6 +19,7 @@ class PrepareBaseModelConfig:
     params_include_top: bool
     params_weights: str
     params_classes: int
+    params_model_name: str
 
 @dataclass(frozen=True)
 class TrainingConfig:
@@ -40,6 +41,7 @@ class TrainingConfig:
     
 @dataclass(frozen=True)
 class EvaluationConfig:
+    root_dir: Path
     path_of_model: Path
     data_dir: Path
     all_params: dict

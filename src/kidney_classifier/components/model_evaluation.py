@@ -61,7 +61,8 @@ class Evaluation:
             mlflow.log_params(self.config.all_params)
             scores = self.model.evaluate(self.test_ds)
             metrics = {"loss": scores[0], "accuracy": scores[1]}
-            save_json(path=Path("scores.json"), data=metrics)
+            scores_filepath = self.config.root_dir / "scores.json"
+            save_json(path=scores_filepath, data=metrics)
             mlflow.log_metrics(metrics)
             
             
